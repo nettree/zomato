@@ -26,3 +26,105 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+.app-container {
+  height: 100%;
+}
+
+.attributes-div-margin {
+  margin-top: 4em;
+}
+
+.attributes-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.checkbox-title-margin {
+  margin-bottom: 10px;
+}
+
+.cuisine-check-box-div {
+  margin-right: 0;
+  width: 33%;
+}
+
+.slider-margin {
+  margin-top: 2em;
+}
+
+.search-results-div {
+  margin-top: 3em;
+  background-color: #F1F1F1;
+  height: 100%;
+  position: relative;
+}
+
+.restaurants-list-div {
+  overflow-y: auto;
+  max-height: 500px;
+}
+
+.restaurants-div-title {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.restaurants-list-group-item {
+  position: relative;
+  display: block;
+  padding: .75rem 1.25rem;
+  margin-bottom: -1px;
+  border: 1px solid rgba(0,0,0,.125);
+  background-color: #E5E5E5;
+}
+
+.restaurants-list-group-item-action {
+  color: black;
+  font-weight: 500;
+}
+
+.restaurants-list-group-item-action:hover {
+  text-decoration: none;
+  color: white;
+  background-color: #50BEBF;
+}
+
+.restaurants-list-group-item.active {
+  color: white;
+  background-color: #50BEBF !important;
+}
+
+.restaurant-detail-div {
+  margin-top: 5em;
+  margin-bottom: 2em;
+}
+
+.restaurant-feature-image {
+  width: 100%;
+  height: 100%;
+}
+
+.restaurant-name-div {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.restaurant-address-div {
+  font-size: 14px;
+  font-weight: 400;
+  color: grey;
+}
+
+.check-icon {
+  font-size: 20px;
+  color: green;
+}
+
+.cross-icon {
+  font-size: 20px;
+  color: red;
+}
