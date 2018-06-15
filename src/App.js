@@ -5,6 +5,7 @@ import { Checkbox, CheckboxGroup} from 'react-checkbox-group';
 import 'react-input-range/lib/css/index.css';
 import './App.css';
 
+// categories that we want to display as attributes check boxes
 const categories = [
   'Dinner',
   'Takeaway',
@@ -12,6 +13,7 @@ const categories = [
   'Pubs & Bars'
 ]
 
+// cuisines that we want to display as attributes check boxes
 const cuisines = [
   'Cafe Food',
   'Asian',
@@ -26,9 +28,10 @@ const cuisines = [
   'Sandwich'
 ]
 
+// Zomato API key
 const userKey = "77858a85ed9093ac6735fb9f5e626f63";
 
-const displayedCusineIds = new Set();
+const displayedCuisineIds = new Set();
 
 class App extends Component {
   
@@ -43,16 +46,22 @@ class App extends Component {
       restaurants: [],
       restaurantDetails: {},
       rating: {min: 3, max: 5},
-      cost: {min: 100, max: 300},
+      cost: {min: 50, max: 300},
       cityId: 0,
     };
   }
 
+  // Send ajax requests when component is mounted to page
   componentDidMount() {
     this.getCategories(userKey);
-    this.getAdelaideCusisines(userKey);
+    this.getAdelaideCuisines(userKey);
   }
 
+  /**
+   * Get all categories from Zomato
+   * 
+   * @param userKey Zomato API key
+   */
   getCategories = (userKey) => {
     fetch("https://developers.zomato.com/api/v2.1/categories", 
       {
@@ -69,9 +78,6 @@ class App extends Component {
             categories: result.categories
           });
         },
-        // Note: it's important to handle errors here
-        // instead of a catch() block so that we don't swallow
-        // exceptions from actual bugs in components.
         (error) => {
           this.setState({
             isCategoriesLoaded: false,
@@ -81,7 +87,12 @@ class App extends Component {
       )
   }
 
-  getAdelaideCusisines = (userKey) => {
+  /**
+   * Get Adelaide cuisines from Zomato
+   * 
+   * @param userKey Zomato API key
+   */
+  getAdelaideCuisines = (userKey) => {
     //We only retrieve restaurants in Adelaide
     fetch("https://developers.zomato.com/api/v2.1/cities?q=Adelaide",
       {
@@ -99,8 +110,9 @@ class App extends Component {
               this.setState({
                 isCityIdLoaded: true,
                 cityId: location.id
-              })
-              this.getCusisines(userKey, location.id);
+              });
+              this.getCuisines(userKey, location.id);
+              //this.searchRestaurants();
             }
           }
         },
@@ -113,7 +125,13 @@ class App extends Component {
       )
   }
 
-  getCusisines = (userKey, cityId) => {
+  /**
+   * Get available cuisines using city id, in our case, it's Adelaide
+   * 
+   * @param userKey Zomato API key
+   * @param cityId city ID of Adelaide
+   */
+  getCuisines = (userKey, cityId) => {
     if (cityId) {
       fetch("https://developers.zomato.com/api/v2.1/cuisines?city_id=" + cityId, 
         {
@@ -140,24 +158,54 @@ class App extends Component {
     }
   }
 
+  /**
+   * Click event handler for category check box group, a callback method of searching restaurants 
+   * will be executed after selected categories is set to state, this will ensure search restaurants
+   * method get the latest change
+   * 
+   * @param selectedCategories the value of this will always be an array of selected category Ids 
+   *
+   */
   handleCategoryChange = (selectedCategories) => {
     this.setState({selectedCategories: selectedCategories}, this.searchRestaurants);
   }
 
+  /**
+   * Click event handler for cuisine check box group, a callback method of searching restaurants 
+   * will be executed after selected cuisines is set to state, this will ensure search restaurants
+   * method get the latest change
+   * 
+   * @param selectedCuisines the value of this will always be an array of selected cuisines Ids 
+   *
+   */
   handleCuisineChange = (selectedCuisines) => {
     this.setState({selectedCuisines: selectedCuisines}, this.searchRestaurants);
   }
 
+  /**
+   * Send search request to Zomato to get restaurants list in Adelaide 
+   * based on categories and cuisines attributes selected, we use rating
+   * to sort the result order by desc
+   */
   searchRestaurants = () => {
     let searchUrl = "https://developers.zomato.com/api/v2.1/search?";
     let selectedCategories = this.state.selectedCategories;
     let selectedCuisines = this.state.selectedCuisines;
     let queryParameters = [];
+
+    // by default we order search results from high to low rating
+    // city is Adelaide
+    queryParameters.push("entity_id=" + this.state.cityId);
+    queryParameters.push("entity_type=city");
+    queryParameters.push("sort=rating");
+    queryParameters.push("order=desc");
     
+    // append selected categories to query parameters
     if(selectedCategories.length > 0) {
       queryParameters.push("category=".concat(selectedCategories.join(",")))
     }
 
+    // append selected cuisines to query parameters
     if(selectedCuisines.length > 0) {
       let otherCuisineIndex = selectedCuisines.indexOf("Other"); 
       let cuisineIds = new Array(selectedCuisines);
@@ -166,9 +214,9 @@ class App extends Component {
       if(otherCuisineIndex !== -1) {
         // remove 'Other' cuisine from selected cuisine ids
         cuisineIds.splice(otherCuisineIndex, 1);
-        // add cuisine ids that are not displayed
+        // add cuisine ids that are not displayed yet returned from Zomato
         this.state.cuisines.forEach(cuisine => {
-          if(!displayedCusineIds.has(cuisine.cuisine.cuisine_id)) {
+          if(!displayedCuisineIds.has(cuisine.cuisine.cuisine_id)) {
             cuisineIds.push(cuisine.cuisine.cuisine_id);
           }
         });
@@ -176,15 +224,8 @@ class App extends Component {
 
       queryParameters.push("cuisines=".concat(cuisineIds.join(",")));
     }
-    // by default we order search results from high to low rating
-    // city is Adelaide
-    queryParameters.push("entity_id=" + this.state.cityId);
-    queryParameters.push("eneity_type=city");
-    queryParameters.push("sort=rating");
-    queryParameters.push("order=desc");
 
-    console.log(searchUrl.concat(queryParameters.join("&")));
-
+    // perform search
     fetch(searchUrl.concat(queryParameters.join("&")), 
         {
           method: 'get',
@@ -195,6 +236,7 @@ class App extends Component {
         .then(res => res.json())
         .then(
           (result) => {
+            result.restaurants.forEach(res => console.log(res));
             this.setState({
               isResturantsLoaded: true,
               restaurants: result.restaurants
@@ -209,8 +251,13 @@ class App extends Component {
         )
   }
 
-  getRestaurantDetails = (restaurantId) => () => {
-    console.log(restaurantId);
+  /**
+   * Send search request to Zomato to get specific restaurant details
+   * 
+   * @param restaurantId restaurant id from Zomato
+   */
+  getRestaurantDetails = (restaurantId) => (e) => {
+    e.preventDefault();
     fetch("https://developers.zomato.com/api/v2.1/restaurant?res_id=" + restaurantId, 
         {
           method: 'get',
@@ -235,66 +282,101 @@ class App extends Component {
         )
   }
 
+  /**
+   * Render check box group of categories attributes
+   */
   renderCategoriesCheckBoxes = () => {
-    let checkBoxes = [];
-    let allCategories = this.state.categories;
-    for(let i = 0; i < categories.length; i++) {
-      let category = allCategories.find(item => item.categories.name === categories[i]);
-      if(category) {
-        let categoryId = category.categories.id;
-        let checkboxId = "category-checkbox-" + categoryId;
-        checkBoxes.push(
-          <div className="form-check" key={checkboxId + "-div"}>
-            <label key={checkboxId + "-label"} className="form-check-label" htmlFor={checkboxId}>
-              <Checkbox key={checkboxId} className="form-check-input" value={categoryId}/>{category.categories.name}
-            </label>
-          </div>
-        )
+    if (this.state.categories !== undefined) {
+      let checkBoxes = [];
+      let allCategories = this.state.categories;
+
+      for(let i = 0; i < categories.length; i++) {
+        let category = undefined;
+
+        for(let j = 0; j < allCategories.length; j++) {
+          let item = allCategories[j];
+          if(item.categories.name === categories[i]) {
+            category = item;
+            break;
+          }
+        }
+        // Test in IE find that it doesn't support .find(), so use above logic to replace
+        // let category = allCategories.find(item => item.categories.name === categories[i]);
+        if(category) {
+          let categoryId = category.categories.id;
+          let checkboxId = "category-checkbox-" + categoryId;
+          checkBoxes.push(
+            <div key={checkboxId + "-div"} className="form-check">
+              <label key={checkboxId + "-label"} className="form-check-label" htmlFor={checkboxId}>
+                <Checkbox key={checkboxId} className="form-check-input" value={categoryId}/>{category.categories.name}
+              </label>
+            </div>
+          )
+        }
       }
+      
+      return (
+        <CheckboxGroup name="categories" checkboxDepth={3} value={this.state.selectedCategories} onChange={this.handleCategoryChange}>
+          {checkBoxes}
+        </CheckboxGroup>
+      )
     }
-    
-    return (
-      <CheckboxGroup name="categories" checkboxDepth={3} value={this.state.selectedCategories} onChange={this.handleCategoryChange}>
-        {checkBoxes}
-      </CheckboxGroup>
-    )
   }
 
-  renderCusisinesCheckBoxes = () => {
-    let checkBoxes = [];
-    let allCuisines = this.state.cuisines;
-    for(let i = 0; i < cuisines.length; i++) {
-      let cuisine = allCuisines.find(item => item.cuisine.cuisine_name === cuisines[i]);
-      if(cuisine) {
-        let cuisineId = cuisine.cuisine.cuisine_id;
-        displayedCusineIds.add(cuisineId);
-        let checkboxId = "cuisine-checkbox-" + cuisineId;
-        checkBoxes.push(
-          <div className="form-check-inline cuisine-check-box-div" key={checkboxId + "-div"}>
-            <label key={checkboxId + "-label"} className="form-check-label" htmlFor={checkboxId}>
-              <Checkbox key={checkboxId} className="form-check-input" value={cuisineId}/>{cuisine.cuisine.cuisine_name}
-            </label>
-          </div>
-        )
-      } else if(cuisines[i] === 'Other') {
-        // generate 'Other' cuisine check box
-        checkBoxes.push(
-          <div className="form-check-inline cuisine-check-box-div" key="other-cuisine-checkbox-div">
-            <label key="other-cuisine-checkbox-label" className="form-check-label" htmlFor="other-cuisine-checkbox">
-              <Checkbox key= "other-cuisine-checkbox" className="form-check-input" value="Other"/>Other
-            </label>
-          </div>
-        )
+  /**
+   * Render check box group of cuisines attributes
+   */
+  renderCuisinesCheckBoxes = () => {
+    if (this.state.cuisines !== undefined) {
+      let checkBoxes = [];
+      let allCuisines = this.state.cuisines;
+
+      for(let i = 0; i < cuisines.length; i++) {
+        let cuisine = undefined;
+
+        for(let j = 0; j < allCuisines.length; j++) {
+          let item = allCuisines[j];
+          if(item.cuisine.cuisine_name === cuisines[i]) {
+            cuisine = item;
+            break;
+          }
+        }
+        // Test in IE find that it doesn't support .find(), so use above logic to replace
+        // let cuisine = allCuisines.find(item => item.cuisine.cuisine_name === cuisines[i]);
+        if(cuisine) {
+          let cuisineId = cuisine.cuisine.cuisine_id;
+          let checkboxId = "cuisine-checkbox-" + cuisineId;
+          displayedCuisineIds.add(cuisineId);
+          checkBoxes.push(
+            <div key={checkboxId + "-div"} className="form-check-inline cuisine-check-box-div" >
+              <label key={checkboxId + "-label"} className="form-check-label" htmlFor={checkboxId}>
+                <Checkbox key={checkboxId} className="form-check-input" value={cuisineId}/>{cuisine.cuisine.cuisine_name}
+              </label>
+            </div>
+          )
+        } else if(cuisines[i] === 'Other') {
+          // generate 'Other' cuisine check box
+          checkBoxes.push(
+            <div className="form-check-inline cuisine-check-box-div" key="other-cuisine-checkbox-div">
+              <label key="other-cuisine-checkbox-label" className="form-check-label" htmlFor="other-cuisine-checkbox">
+                <Checkbox key= "other-cuisine-checkbox" className="form-check-input" value="Other"/>Other
+              </label>
+            </div>
+          )
+        }
       }
+      
+      return (
+        <CheckboxGroup name="cuisines" checkboxDepth={3} value={this.state.selectedCuisines} onChange={this.handleCuisineChange}>
+          {checkBoxes}
+        </CheckboxGroup>
+      )
     }
-    
-    return (
-      <CheckboxGroup name="cuisines" checkboxDepth={3} value={this.state.selectedCuisines} onChange={this.handleCuisineChange}>
-        {checkBoxes}
-      </CheckboxGroup>
-    )
   }
 
+  /**
+   * Render Rating and Cost filter slider
+   */
   renderRangeSliders = () => {
     let sliders = [];
 
@@ -304,6 +386,7 @@ class App extends Component {
         <InputRange
           maxValue={5}
           minValue={0}
+          step={0.1}
           value={this.state.rating}
           onChange={value => this.setState({ rating: value })} 
         />
@@ -314,17 +397,21 @@ class App extends Component {
       <div className="row slider-margin">
         <div className="attributes-title">COST</div>
         <InputRange
-        maxValue={500}
-        minValue={0}
-        formatLabel={value => value === 0 ? `$0` : value === 1000 ? `$1000` : `$` + value}
-        value={this.state.cost}
-        onChange={value => this.setState({ cost: value })} 
+          maxValue={1000}
+          minValue={0}
+          formatLabel={value => value === 0 ? `$` : value === 1000 ? `$$$$` : ``}
+          value={this.state.cost}
+          onChange={value => this.setState({ cost: value })} 
         />
       </div>
     )
+
     return sliders;
   }
 
+  /**
+   * Render restaurants list items
+   */
   renderRestaurants = () => {
     var items = [];
     let restaurants = this.state.restaurants;
@@ -355,28 +442,33 @@ class App extends Component {
       }
 
       items.push(
-        <a href="javascript:void(0)" className={className} onClick={this.getRestaurantDetails(item.restaurant.id)}>{item.restaurant.name}</a>
+        <a href="#" className={className} onClick={this.getRestaurantDetails(item.restaurant.id)}>{item.restaurant.name}</a>
       );
     }
 
     return (
-      <div className="list-group">
+      <div className="list-group list-group-flush">
         <div className="restaurants-list-group-item restaurants-div-title">RESULTS</div>
         {items}
       </div>
     )
   }
 
+  /**
+   * Render restaurant details (RHS)
+   */
   renderRestaurantDetails = () => {
     let restaurant = this.state.restaurantDetails;
-    console.log(restaurant);
     let checkIcon = <i className="fa fa-check check-icon"></i>;
     let crossIcon = <i className="fa fa-close cross-icon"></i>;
+    let isBookingAvailable = restaurant.has_table_booking || restaurant.is_table_reservation_supported;
+    let isDeliveryAvailable = restaurant.has_online_delivery || restaurant.is_delivering_now;
+
     return (
       <div className="row restaurant-detail-div">
         <div className="col-md-1"></div>
         <div className="col-md-5">
-          <img src={restaurant.featured_image} className="restaurant-feature-image"/>
+          <img src={restaurant.featured_image || restaurant.thumb || "./images/no_image_available.png"} alt="" className="restaurant-feature-image"/>
         </div>
         <div className="col-md-6">
           <div className="row">
@@ -385,9 +477,23 @@ class App extends Component {
           <div className="row">
             <div className="col-md-12 restaurant-address-div">{restaurant.location.address}</div>
           </div>
+          <div className="row restaurant-booking-div-margin">
+            <div className="col-md-12 restaurant-booking-div">{ isBookingAvailable ? checkIcon : crossIcon} {isBookingAvailable ? "Bookings available" : "No bookings"}</div>
+          </div>
           <div className="row">
-            <div>{restaurant.has_table_booking ? checkIcon : crossIcon}</div>
-            <div>{restaurant.has_online_delivery ? checkIcon : crossIcon}</div>
+            <div className="col-md-12 restaurant-delivery-div">{ isDeliveryAvailable ? checkIcon : crossIcon} {isDeliveryAvailable ? "Delivery available" : "No delivery"}</div>
+          </div>
+          <div className="row restaurant-cuisin-div-margin">
+            <div className="col-md-12 restaurant-cuisine-title">CUISINE</div>
+          </div>
+          <div className="row">
+            <div className="col-md-12 restaurant-cuisine-text">{restaurant.cuisines}</div>
+          </div>
+          <div className="row restaurant-phone-div-margin">
+            <div className="col-md-12 restaurant-phone-title">PHONE NUMBER</div>
+          </div>
+          <div className="row">
+            <div className="col-md-12 restaurant-phone-text">{restaurant.phone_numbers ? restaurant.phone_numbers : "No phone number available"}</div>
           </div>
         </div>
       </div>
@@ -398,19 +504,16 @@ class App extends Component {
     return (
       <div className="container-fluid app-container">
         <div className="row attributes-div-margin">
-          <div className="col-md-1"></div>
           <div className="col-md-2">
             <div className="attributes-title checkbox-title-margin">CATEGORY</div>
             {this.state.isCategoriesLoaded && this.renderCategoriesCheckBoxes()}
           </div>
-          <div className="col-md-5">
+          <div className="col-md-6">
             <div className="attributes-title checkbox-title-margin">CUISINE</div>
-            {this.state.isCuisinesLoaded && this.renderCusisinesCheckBoxes()}
+            {this.state.isCuisinesLoaded && this.renderCuisinesCheckBoxes()}
           </div>
           <div className="col-md-3">
             {this.renderRangeSliders()}
-          </div>
-          <div className="col-md-1">
           </div>
         </div>
         <div className="row search-results-div">

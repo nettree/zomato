@@ -32,13 +32,14 @@
 }
 
 .attributes-div-margin {
-  margin-top: 4em;
+  margin-top: 2em;
+  margin-left: 2em;
 }
 
 .attributes-title {
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
 }
 
 .checkbox-title-margin {
@@ -54,6 +55,31 @@
   margin-top: 2em;
 }
 
+/* Slider customization */
+.input-range__label {
+  color: #565B5D;
+}
+
+.input-range__label--value {
+  display: none;
+}
+
+.input-range__slider {
+  margin-top: -14px;
+  background-color: #F1F1F1;
+  border-color: #50BEBF;
+}
+
+.input-range__track--background {
+  height: 12px;
+}
+
+.input-range__track--active {
+  background: #50BEBF;
+  height: 12px;
+}
+/* Slider customization end */
+
 .search-results-div {
   margin-top: 3em;
   background-color: #F1F1F1;
@@ -63,7 +89,7 @@
 
 .restaurants-list-div {
   overflow-y: auto;
-  max-height: 500px;
+  max-height: 800px;
 }
 
 .restaurants-div-title {
@@ -71,6 +97,7 @@
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 1.5px;
+  padding-left: 3.2em !important;
 }
 
 .restaurants-list-group-item {
@@ -80,6 +107,7 @@
   margin-bottom: -1px;
   border: 1px solid rgba(0,0,0,.125);
   background-color: #E5E5E5;
+  padding-left: 2.8em;
 }
 
 .restaurants-list-group-item-action {
@@ -98,9 +126,11 @@
   background-color: #50BEBF !important;
 }
 
+/* Resaurant details */
 .restaurant-detail-div {
-  margin-top: 5em;
-  margin-bottom: 2em;
+  margin-top: 3em;
+  margin-left: -4em;
+  margin-bottom: 3em;
 }
 
 .restaurant-feature-image {
@@ -116,15 +146,66 @@
 .restaurant-address-div {
   font-size: 14px;
   font-weight: 400;
-  color: grey;
+  color: #74787A;
+}
+
+.restaurant-booking-div-margin {
+  margin-top: 1.5em;
+}
+
+.restaurant-booking-div {
+  font-size: 14px;
+  color: #4E5456;
+}
+
+.restaurant-delivery-div {
+  font-size: 14px;
+  color: #4E5456;
 }
 
 .check-icon {
-  font-size: 20px;
+  font-size: 14px;
+  font-weight: 100;
   color: green;
+  margin-right: 5px;
 }
 
 .cross-icon {
-  font-size: 20px;
+  font-size: 14px;
+  font-weight: 100;
   color: red;
+  margin-right: 5px;
 }
+
+.restaurant-cuisine-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.restaurant-cuisin-div-margin {
+  margin-top: 1.5em;
+}
+
+.restaurant-cuisine-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #4E5456;
+}
+
+.restaurant-phone-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.restaurant-phone-div-margin {
+  margin-top: 1.5em;
+}
+
+.restaurant-phone-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #4E5456;
+}
+/* Resaurant details end */
