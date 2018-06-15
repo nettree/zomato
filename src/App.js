@@ -34,8 +34,7 @@ const cuisines = [
 ]
 
 // Zomato API key
-//const userKey = "77858a85ed9093ac6735fb9f5e626f63";
-const userKey = "d052ff52dd548e62a74da081b0502597";
+const userKey = "77858a85ed9093ac6735fb9f5e626f63";
 
 // default search count
 const searchCount = 20;

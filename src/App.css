@@ -231,10 +231,9 @@
 }
 
 /* Mobile CSS */
-@media only screen and (max-width : 980px) {
+@media only screen and (min-width: 578px) and (max-width: 768px) {
   .cuisine-div {
     margin-top: 1em;
-    margin-left: -.3em;
   }
 
   .slider-div {
@@ -245,5 +244,37 @@
   .details-div {
     margin-left: 5.8em;
     margin-top: 2.4em;
+  }
+
+  .attributes-div-margin {
+    margin-top: 1em;
+    margin-left: 0em;
+  }
+}
+
+/* Mobile CSS */
+@media only screen and (max-width: 575px) {
+  .cuisine-div {
+    margin-top: 1em;
+  }
+
+  .cuisine-checkbox-title-div {
+    margin-left: 0px;
+  }
+
+  .slider-div {
+    margin-top: 1em;
+    margin-left: 1.1em;
+    max-width: 80%;
+  }
+
+  .details-div {
+    margin-left: 5.8em;
+    margin-top: 2.4em;
+  }
+
+  .attributes-div-margin {
+    margin-top: 1em;
+    margin-left: .5em;
   }
 }
