@@ -2,6 +2,11 @@ import React, { Component } from 'react';
 import InputRange from 'react-input-range';
 import { Checkbox, CheckboxGroup} from 'react-checkbox-group';
 
+import "bootstrap/scss/_functions.scss";
+import "bootstrap/scss/_variables.scss";
+import "bootstrap/scss/_mixins.scss";
+//import "../node_modules/Font-Awesome/scss/variables";
+import "awesome-bootstrap-checkbox";
 import 'react-input-range/lib/css/index.css';
 import './App.css';
 
@@ -29,8 +34,16 @@ const cuisines = [
 ]
 
 // Zomato API key
-const userKey = "77858a85ed9093ac6735fb9f5e626f63";
+//const userKey = "77858a85ed9093ac6735fb9f5e626f63";
+const userKey = "d052ff52dd548e62a74da081b0502597";
 
+// default search count
+const searchCount = 20;
+
+// we can only get up to 100 restaurants by changing `start` and `count`
+const maxResults = 100;
+
+// displayed cuisine ids set
 const displayedCuisineIds = new Set();
 
 class App extends Component {
@@ -46,8 +59,11 @@ class App extends Component {
       restaurants: [],
       restaurantDetails: {},
       rating: {min: 3, max: 5},
-      cost: {min: 50, max: 300},
+      priceRange: {min: 1, max: 3},
       cityId: 0,
+      resultsFound: 0,
+      start: 0,
+      restaurantListDivRef: {}
     };
   }
 
@@ -105,14 +121,23 @@ class App extends Component {
       .then(
         (result) => {
           if (result.location_suggestions && Array.isArray(result.location_suggestions)) {
-            let location = result.location_suggestions.find(location => location.country_name === 'Australia' && location.state_code === 'SA');
+            let location = undefined;
+
+            for(let i = 0; i < result.location_suggestions.length; i++) {
+              let item = result.location_suggestions[i];
+              if(item.country_name === 'Australia' && item.state_code === 'SA') {
+                location = item;
+                break;
+              }
+            }
+            
             if (location) {
               this.setState({
                 isCityIdLoaded: true,
                 cityId: location.id
               });
               this.getCuisines(userKey, location.id);
-              //this.searchRestaurants();
+              this.searchRestaurants(location.id)();
             }
           }
         },
@@ -167,7 +192,10 @@ class App extends Component {
    *
    */
   handleCategoryChange = (selectedCategories) => {
-    this.setState({selectedCategories: selectedCategories}, this.searchRestaurants);
+    this.setState({
+      selectedCategories: selectedCategories,
+      start: 0
+    }, this.searchRestaurants(this.state.cityId));
   }
 
   /**
@@ -179,7 +207,10 @@ class App extends Component {
    *
    */
   handleCuisineChange = (selectedCuisines) => {
-    this.setState({selectedCuisines: selectedCuisines}, this.searchRestaurants);
+    this.setState({
+      selectedCuisines: selectedCuisines,
+      start: 0
+    }, this.searchRestaurants(this.state.cityId));
   }
 
   /**
@@ -187,18 +218,21 @@ class App extends Component {
    * based on categories and cuisines attributes selected, we use rating
    * to sort the result order by desc
    */
-  searchRestaurants = () => {
+  searchRestaurants = (cityId) => () => {
+    this.setState({
+      isLoadingItems: true
+    })
     let searchUrl = "https://developers.zomato.com/api/v2.1/search?";
     let selectedCategories = this.state.selectedCategories;
     let selectedCuisines = this.state.selectedCuisines;
+    let start = this.state.start;
     let queryParameters = [];
 
-    // by default we order search results from high to low rating
-    // city is Adelaide
-    queryParameters.push("entity_id=" + this.state.cityId);
+    // search range is within Adelaide
+    queryParameters.push("entity_id=" + cityId);
     queryParameters.push("entity_type=city");
-    queryParameters.push("sort=rating");
-    queryParameters.push("order=desc");
+    queryParameters.push("start=" + start);
+    queryParameters.push("count=" + searchCount);
     
     // append selected categories to query parameters
     if(selectedCategories.length > 0) {
@@ -236,10 +270,19 @@ class App extends Component {
         .then(res => res.json())
         .then(
           (result) => {
-            result.restaurants.forEach(res => console.log(res));
+            // if start is greater than 0, it means more 
+            // items are loaded with same filters, we then
+            // should contact new restaurants
+            let newRestaurants = result.restaurants;
+            if(result.results_start > 0) {
+              newRestaurants = this.state.restaurants.concat(result.restaurants);
+            }
             this.setState({
               isResturantsLoaded: true,
-              restaurants: result.restaurants
+              restaurants: newRestaurants,
+              resultsFound: result.results_found,
+              start: start + searchCount,
+              isLoadingItems: false
             });
           },
           (error) => {
@@ -257,7 +300,9 @@ class App extends Component {
    * @param restaurantId restaurant id from Zomato
    */
   getRestaurantDetails = (restaurantId) => (e) => {
+    // prevent default click event as use '#' as href, we don't want jump when clicking
     e.preventDefault();
+
     fetch("https://developers.zomato.com/api/v2.1/restaurant?res_id=" + restaurantId, 
         {
           method: 'get',
@@ -280,6 +325,36 @@ class App extends Component {
             });
           }
         )
+  }
+
+  /**
+   * Event handler when scroll down restaurant list
+   */
+  onRestaurantListScroll = () => {
+    let listDiv = this.state.restaurantListDivRef;
+    // next search start index
+    let start = this.state.start;
+    if(listDiv && start < maxResults) {
+      let resultsFound = this.state.resultsFound;
+      let scrollPercentage = listDiv.scrollTop / (listDiv.scrollHeight - listDiv.clientHeight);
+      // if total results are more than current items number
+      // we say there are more results
+      let hasMoreResults = resultsFound > start;
+      let isLoadingItems = this.state.isLoadingItems;
+      if(!isLoadingItems && scrollPercentage > 0.75 && hasMoreResults) {
+        this.searchRestaurants(this.state.cityId)();
+      }
+    }
+  }
+
+  /**
+   * Set restaurants list div ref to state and bind scroll event to it
+   */
+  setRestaurantsListDivRef = (listDiv) => {
+    listDiv.addEventListener('scroll', this.onRestaurantListScroll);
+    this.setState({
+      restaurantListDivRef: listDiv
+    })
   }
 
   /**
@@ -306,9 +381,10 @@ class App extends Component {
           let categoryId = category.categories.id;
           let checkboxId = "category-checkbox-" + categoryId;
           checkBoxes.push(
-            <div key={checkboxId + "-div"} className="form-check">
+            <div key={checkboxId + "-div"} className="form-check abc-checkbox abc-checkbox-info">
+              <Checkbox key={checkboxId} id={checkboxId} className="form-check-input" value={categoryId}/>
               <label key={checkboxId + "-label"} className="form-check-label" htmlFor={checkboxId}>
-                <Checkbox key={checkboxId} className="form-check-input" value={categoryId}/>{category.categories.name}
+                {category.categories.name}
               </label>
             </div>
           )
@@ -316,7 +392,7 @@ class App extends Component {
       }
       
       return (
-        <CheckboxGroup name="categories" checkboxDepth={3} value={this.state.selectedCategories} onChange={this.handleCategoryChange}>
+        <CheckboxGroup key="categories-checkbox-group" name="categories" checkboxDepth={2} value={this.state.selectedCategories} onChange={this.handleCategoryChange}>
           {checkBoxes}
         </CheckboxGroup>
       )
@@ -348,18 +424,20 @@ class App extends Component {
           let checkboxId = "cuisine-checkbox-" + cuisineId;
           displayedCuisineIds.add(cuisineId);
           checkBoxes.push(
-            <div key={checkboxId + "-div"} className="form-check-inline cuisine-check-box-div" >
+            <div key={checkboxId + "-div"} className="form-check-inline cuisine-checkbox-div abc-checkbox abc-checkbox-info" >
+              <Checkbox key={checkboxId} id={checkboxId} className="form-check-input" value={cuisineId}/>
               <label key={checkboxId + "-label"} className="form-check-label" htmlFor={checkboxId}>
-                <Checkbox key={checkboxId} className="form-check-input" value={cuisineId}/>{cuisine.cuisine.cuisine_name}
+                {cuisine.cuisine.cuisine_name}
               </label>
             </div>
           )
         } else if(cuisines[i] === 'Other') {
           // generate 'Other' cuisine check box
           checkBoxes.push(
-            <div className="form-check-inline cuisine-check-box-div" key="other-cuisine-checkbox-div">
+            <div key="other-cuisine-checkbox-div" className="form-check-inline cuisine-checkbox-div abc-checkbox abc-checkbox-info">
+              <Checkbox key= "other-cuisine-checkbox" className="form-check-input" value="Other"/>
               <label key="other-cuisine-checkbox-label" className="form-check-label" htmlFor="other-cuisine-checkbox">
-                <Checkbox key= "other-cuisine-checkbox" className="form-check-input" value="Other"/>Other
+                Other
               </label>
             </div>
           )
@@ -367,7 +445,7 @@ class App extends Component {
       }
       
       return (
-        <CheckboxGroup name="cuisines" checkboxDepth={3} value={this.state.selectedCuisines} onChange={this.handleCuisineChange}>
+        <CheckboxGroup key="cuisines-checkbox-group" name="cuisines" checkboxDepth={2} value={this.state.selectedCuisines} onChange={this.handleCuisineChange}>
           {checkBoxes}
         </CheckboxGroup>
       )
@@ -379,29 +457,37 @@ class App extends Component {
    */
   renderRangeSliders = () => {
     let sliders = [];
+    let highestRating = 5;
+    let lowestRating = 0;
+    let ratingSlidingStep = 0.1;
 
     sliders.push(
-      <div className="row">
-        <div className="attributes-title">RATING</div>
+      <div key="rating-slider-div" className="row">
+        <div key="rating-slider-attributes-div" className="attributes-title">RATING</div>
         <InputRange
-          maxValue={5}
-          minValue={0}
-          step={0.1}
+          key="rating-input-range"
+          maxValue={highestRating}
+          minValue={lowestRating}
+          step={ratingSlidingStep}
           value={this.state.rating}
           onChange={value => this.setState({ rating: value })} 
         />
       </div>
     );
 
+    // add price range slider
+    let pocketFriendly = 1;
+    let costliest = 4;
     sliders.push(
-      <div className="row slider-margin">
-        <div className="attributes-title">COST</div>
+      <div key="cost-slider-div" className="row slider-margin">
+        <div key="cost-slider-attributes-div" className="attributes-title">COST</div>
         <InputRange
-          maxValue={1000}
-          minValue={0}
-          formatLabel={value => value === 0 ? `$` : value === 1000 ? `$$$$` : ``}
-          value={this.state.cost}
-          onChange={value => this.setState({ cost: value })} 
+          key="cost-input-range"
+          maxValue={costliest}
+          minValue={pocketFriendly}
+          formatLabel={value => value === pocketFriendly ? `$` : value === costliest ? `$$$$` : ``}
+          value={this.state.priceRange}
+          onChange={value => this.setState({ priceRange: value })} 
         />
       </div>
     )
@@ -418,16 +504,16 @@ class App extends Component {
     let rating = this.state.rating;
     let minRating = rating.min;
     let maxRating = rating.max;
-    let cost = this.state.cost;
-    let minCost = cost.min;
-    let maxCost = cost.max;
+    let priceRange = this.state.priceRange;
+    let minCost = priceRange.min;
+    let maxCost = priceRange.max;
 
     // filter out restaurants which rating and cost are within rangers
     let filteredRestaurants = restaurants.filter(item => {
-        let aggregate_rating = Number(item.restaurant.user_rating.aggregate_rating);
-        let average_cost = item.restaurant.average_cost_for_two;
-        return minRating <= aggregate_rating && aggregate_rating <= maxRating 
-                && minCost <= average_cost && average_cost <= maxCost;
+        let aggregateRating = Number(item.restaurant.user_rating.aggregate_rating);
+        let priceRange = item.restaurant.price_range;
+        return minRating <= aggregateRating && aggregateRating <= maxRating 
+                && minCost <= priceRange && priceRange <= maxCost;
       }
     );
 
@@ -442,7 +528,7 @@ class App extends Component {
       }
 
       items.push(
-        <a href="#" className={className} onClick={this.getRestaurantDetails(item.restaurant.id)}>{item.restaurant.name}</a>
+        <a href="javascript:void(0)" className={className} onClick={this.getRestaurantDetails(item.restaurant.id)}>{item.restaurant.name}</a>
       );
     }
 
@@ -461,8 +547,8 @@ class App extends Component {
     let restaurant = this.state.restaurantDetails;
     let checkIcon = <i className="fa fa-check check-icon"></i>;
     let crossIcon = <i className="fa fa-close cross-icon"></i>;
-    let isBookingAvailable = restaurant.has_table_booking || restaurant.is_table_reservation_supported;
-    let isDeliveryAvailable = restaurant.has_online_delivery || restaurant.is_delivering_now;
+    let isBookingAvailable = restaurant.has_table_booking;
+    let isDeliveryAvailable = restaurant.has_online_delivery;
 
     return (
       <div className="row restaurant-detail-div">
@@ -470,7 +556,7 @@ class App extends Component {
         <div className="col-md-5">
           <img src={restaurant.featured_image || restaurant.thumb || "./images/no_image_available.png"} alt="" className="restaurant-feature-image"/>
         </div>
-        <div className="col-md-6">
+        <div className="col-md-6 details-div">
           <div className="row">
             <div className="col-md-12 restaurant-name-div">{restaurant.name}</div>
           </div>
@@ -478,10 +564,10 @@ class App extends Component {
             <div className="col-md-12 restaurant-address-div">{restaurant.location.address}</div>
           </div>
           <div className="row restaurant-booking-div-margin">
-            <div className="col-md-12 restaurant-booking-div">{ isBookingAvailable ? checkIcon : crossIcon} {isBookingAvailable ? "Bookings available" : "No bookings"}</div>
+            <div className="col-md-12 restaurant-booking-div">{isBookingAvailable ? checkIcon : crossIcon} {isBookingAvailable ? "Bookings available" : "No bookings"}</div>
           </div>
           <div className="row">
-            <div className="col-md-12 restaurant-delivery-div">{ isDeliveryAvailable ? checkIcon : crossIcon} {isDeliveryAvailable ? "Delivery available" : "No delivery"}</div>
+            <div className="col-md-12 restaurant-delivery-div">{isDeliveryAvailable ? checkIcon : crossIcon} {isDeliveryAvailable ? "Delivery available" : "No delivery"}</div>
           </div>
           <div className="row restaurant-cuisin-div-margin">
             <div className="col-md-12 restaurant-cuisine-title">CUISINE</div>
@@ -505,19 +591,19 @@ class App extends Component {
       <div className="container-fluid app-container">
         <div className="row attributes-div-margin">
           <div className="col-md-2">
-            <div className="attributes-title checkbox-title-margin">CATEGORY</div>
+            <div className="attributes-title checkbox-title-margin category-checkbox-title-div">CATEGORY</div>
             {this.state.isCategoriesLoaded && this.renderCategoriesCheckBoxes()}
           </div>
-          <div className="col-md-6">
-            <div className="attributes-title checkbox-title-margin">CUISINE</div>
+          <div className="col-md-6 cuisine-div">
+            <div className="attributes-title checkbox-title-margin cuisine-checkbox-title-div">CUISINE</div>
             {this.state.isCuisinesLoaded && this.renderCuisinesCheckBoxes()}
           </div>
-          <div className="col-md-3">
+          <div className="col-md-3 col-sm-9 slider-div">
             {this.renderRangeSliders()}
           </div>
         </div>
         <div className="row search-results-div">
-          <div className="col-md-4 restaurants-list-div">
+          <div className="col-md-4 restaurants-list-div" ref={this.setRestaurantsListDivRef}>
             {this.state.isResturantsLoaded && this.renderRestaurants()}
           </div>
           <div className="col-md-8">

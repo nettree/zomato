@@ -31,6 +31,7 @@
   height: 100%;
 }
 
+/* Attributes section */
 .attributes-div-margin {
   margin-top: 2em;
   margin-left: 2em;
@@ -46,16 +47,26 @@
   margin-bottom: 10px;
 }
 
-.cuisine-check-box-div {
+.category-checkbox-title-div {
+  margin-left: -3px;
+}
+
+.cuisine-checkbox-title-div {
+  margin-left: 1px;
+}
+
+.cuisine-checkbox-div {
   margin-right: 0;
   width: 33%;
 }
 
+/* Attributes section ends*/
+
+/* Slider filters */
 .slider-margin {
   margin-top: 2em;
 }
 
-/* Slider customization */
 .input-range__label {
   color: #565B5D;
 }
@@ -78,7 +89,7 @@
   background: #50BEBF;
   height: 12px;
 }
-/* Slider customization end */
+/* Slider filters end */
 
 .search-results-div {
   margin-top: 3em;
@@ -87,9 +98,11 @@
   position: relative;
 }
 
+/* Restaurants list */
 .restaurants-list-div {
   overflow-y: auto;
-  max-height: 800px;
+  max-height: 500px;
+  padding-left: 0px;
 }
 
 .restaurants-div-title {
@@ -97,22 +110,22 @@
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 1.5px;
-  padding-left: 3.2em !important;
+  padding-left: 4.3em !important;
 }
 
 .restaurants-list-group-item {
   position: relative;
   display: block;
   padding: .75rem 1.25rem;
-  margin-bottom: -1px;
-  border: 1px solid rgba(0,0,0,.125);
+  border: 0px;
+  border-bottom: 1px solid rgba(0,0,0,.125);
   background-color: #E5E5E5;
-  padding-left: 2.8em;
+  padding-left: 3.8em;
 }
 
 .restaurants-list-group-item-action {
   color: black;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .restaurants-list-group-item-action:hover {
@@ -125,6 +138,7 @@
   color: white;
   background-color: #50BEBF !important;
 }
+/* Resaurant list ends */
 
 /* Resaurant details */
 .restaurant-detail-div {
@@ -209,3 +223,27 @@
   color: #4E5456;
 }
 /* Resaurant details end */
+
+/* Check box group CSS */
+.abc-checkbox-info input[type="checkbox"]:checked + label::before, .abc-checkbox-info input[type="radio"]:checked + label::before {
+  background-color: #50BEBF;
+  border-color: #50BEBF;
+}
+
+/* Mobile CSS */
+@media only screen and (max-width : 980px) {
+  .cuisine-div {
+    margin-top: 1em;
+    margin-left: -.3em;
+  }
+
+  .slider-div {
+    margin-top: 1em;
+    margin-left: 1em;
+  }
+
+  .details-div {
+    margin-left: 5.8em;
+    margin-top: 2.4em;
+  }
+}
