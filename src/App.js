@@ -16,7 +16,7 @@ const categories = [
   'Takeaway',
   'Delivery',
   'Pubs & Bars'
-]
+];
 
 // cuisines that we want to display as attributes check boxes
 const cuisines = [
@@ -31,7 +31,7 @@ const cuisines = [
   'Other',
   'Fast Food',
   'Sandwich'
-]
+];
 
 // Zomato API key
 const userKey = "77858a85ed9093ac6735fb9f5e626f63";
@@ -465,6 +465,7 @@ class App extends Component {
         <div key="rating-slider-attributes-div" className="attributes-title">RATING</div>
         <InputRange
           key="rating-input-range"
+          allowSameValues={true}
           maxValue={highestRating}
           minValue={lowestRating}
           step={ratingSlidingStep}
@@ -482,6 +483,7 @@ class App extends Component {
         <div key="cost-slider-attributes-div" className="attributes-title">COST</div>
         <InputRange
           key="cost-input-range"
+          allowSameValues={true}
           maxValue={costliest}
           minValue={pocketFriendly}
           formatLabel={value => value === pocketFriendly ? `$` : value === costliest ? `$$$$` : ``}
